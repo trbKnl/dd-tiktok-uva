@@ -284,3 +284,29 @@ def share_history_to_df(tiktok_zip: str):
 
     return out
 
+
+def settings_to_df(tiktok_zip: str):
+
+    out = pd.DataFrame()
+
+    try:
+        b = unzipddp.extract_file_from_zip(tiktok_zip, "Settings.txt")
+        b = io.TextIOWrapper(b, encoding='utf-8')
+        text = b.read()
+
+        pattern = re.compile(r"^Interests: (.*?)$", re.MULTILINE)
+        match = re.search(pattern, text)
+        if match:
+            interests = match.group(1).split("|")
+            out = pd.DataFrame(interests, columns=["Interests"])
+
+    except Exception as e:
+        logger.error(e)
+
+    return out
+
+
+
+
+
+
