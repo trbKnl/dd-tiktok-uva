@@ -45,7 +45,7 @@ def process(session_id):
 
             # Render the propmt file page
             promptFile = prompt_file("application/zip, text/plain, application/json", platform_name)
-            file_result = yield render_donation_page(platform_name, promptFile)
+            file_result = yield render_donation_page("Selecteer je TikTok bestand", promptFile)
 
             if file_result.__type__ == "PayloadString":
                 validation = validation_fun(file_result.value)
@@ -62,7 +62,7 @@ def process(session_id):
                 if validation.status_code.id != 0: 
                     LOGGER.info("Not a valid %s zip; No payload; prompt retry_confirmation", platform_name)
                     yield donate_logs(f"{session_id}-{platform_name}-tracking")
-                    retry_result = yield render_donation_page(platform_name, retry_confirmation(platform_name))
+                    retry_result = yield render_donation_page("Selecteer je TikTok bestand", retry_confirmation(platform_name))
 
                     if retry_result.__type__ == "PayloadTrue":
                         continue
@@ -87,7 +87,7 @@ def process(session_id):
                 table_list.append(create_empty_table(platform_name))
 
             prompt = assemble_tables_into_form(table_list)
-            consent_result = yield render_donation_page(platform_name, prompt)
+            consent_result = yield render_donation_page("Jouw TikTok gegevens delen", prompt)
 
             if consent_result.__type__ == "PayloadJSON":
                 LOGGER.info("Data donated; %s", platform_name)
@@ -119,7 +119,32 @@ def assemble_tables_into_form(table_list: list[props.PropsUIPromptConsentFormTab
     """
     Assembles all donated data in consent form to be displayed
     """
-    return props.PropsUIPromptConsentForm(table_list, [])
+    description = props.Translatable(
+        {
+            "en": """Hieronder zie je jouw gegevens over je eigen TikTok-gebruik. Bekijk de gegevens zorgvuldig, en verwijder de gegevens die je niet wil delen. Als je deze gegevens wil delen, klik dan op de knop ‘Ja, deel voor onderzoek’ onderaan deze pagina. Door deze gegevens te delen draag je bij aan onderzoek over hoe jongeren TikTok gebruiken, alvast heel erg bedankt!""",
+            "nl": """Hieronder zie je jouw gegevens over je eigen TikTok-gebruik. Bekijk de gegevens zorgvuldig, en verwijder de gegevens die je niet wil delen. Als je deze gegevens wil delen, klik dan op de knop ‘Ja, deel voor onderzoek’ onderaan deze pagina. Door deze gegevens te delen draag je bij aan onderzoek over hoe jongeren TikTok gebruiken, alvast heel erg bedankt!"""
+        }
+    )
+
+    donate_question = props.Translatable({
+       "en": "Wil je deze gegevens delen voor onderzoek?",
+       "nl": "Wil je deze gegevens delen voor onderzoek?"
+    })
+
+    donate_button = props.Translatable({
+       "nl": "Ja, deel voor onderzoek",
+       "en": "Ja, deel voor onderzoek"
+    })
+
+    return props.PropsUIPromptConsentForm(
+       table_list, 
+       [], 
+       description = description,
+       donate_question = donate_question,
+       donate_button = donate_button
+    )
+
+
 
 
 def donate_logs(key):
@@ -156,67 +181,149 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
     df = tiktok.browsing_history_to_df(tiktok_file)
     if not df.empty:
         hours_logged_in = {
-            "title": {"en": "Total hours watched per month of the year", "nl": "Totaal aantal uren gekeken per maand van het jaar"},
+            "title": {"en": "Totaal aantal videos gekeken per maand", "nl": "Totaal aantal videos gekeken per maand"},
             "type": "area",
             "group": {
-                "column": "Date",
+                "column": "Tijdstip",
                 "dateFormat": "month"
             },
             "values": [{
                 "label": "Aantal"
             }]
         }
-        table_title = props.Translatable({"en": "Tiktok video browsing history", "nl": "Kijkgeschiedenis van TikTok video’s"})
-        table_description = props.Translatable({"en": "Ik ben een beschrijving", "nl": "Ik ben een beschrijving"})
+        table_title = props.Translatable({"en": "Kijkgeschiedenis", "nl": "Kijkgeschiedenis"})
+        table_description = props.Translatable(
+            {
+                "en": "De tabel hieronder geeft aan welke TikTok video's je precies hebt bekeken en wanneer dat was. De grafiek laat zien hoeveel video's je elke maand hebt bekeken.", 
+                "nl": "De tabel hieronder geeft aan welke TikTok video's je precies hebt bekeken en wanneer dat was. De grafiek laat zien hoeveel video's je elke maand hebt bekeken.", 
+             }
+        )
         table = props.PropsUIPromptConsentFormTable("tiktok_video_browsing_history", table_title, df, table_description, [hours_logged_in]) 
-        tables_to_render.append(table)
-
-    df = tiktok.favorite_hashtag_to_df(tiktok_file)
-    if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok favorite hashtags", "nl": "Tiktok favorite hashtags"})
-        table = props.PropsUIPromptConsentFormTable("tiktok_favorite_hashtags", table_title, df)
         tables_to_render.append(table)
 
     df = tiktok.favorite_videos_to_df(tiktok_file)
     if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok favorite videos", "nl": "Tiktok favorite videos"})
-        table = props.PropsUIPromptConsentFormTable("tiktok_favorite_videos", table_title, df)
+        table_title = props.Translatable(
+            {
+                "en": "Favoriete video's", 
+                "nl": "Favoriete video's", 
+            }
+        )
+        table_description = props.Translatable(
+            {
+                "nl": "In de tabel hieronder vind je de videos die tot je favorieten behoren.", 
+                "en": "In de tabel hieronder vind je de videos die tot je favorieten behoren.", 
+             }
+        )
+        table = props.PropsUIPromptConsentFormTable("tiktok_favorite_videos", table_title, df, table_description)
         tables_to_render.append(table)
+
+
+    df = tiktok.favorite_hashtag_to_df(tiktok_file)
+    if not df.empty:
+        table_title = props.Translatable(
+            {
+                "en": "Favoriete hashtags", 
+                "nl": "Favoriete hashtags", 
+            }
+        )
+        table_description = props.Translatable(
+            {
+                "en": "In de tabel hieronder vind je de hashtags die tot je favorieten behoren.", 
+                "nl": "In de tabel hieronder vind je de hashtags die tot je favorieten behoren.", 
+             }
+        )
+        table = props.PropsUIPromptConsentFormTable("tiktok_favorite_hashtags", table_title, df, table_description)
+        tables_to_render.append(table)
+
 
     df = tiktok.hashtag_to_df(tiktok_file)
     if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok hashtag", "nl": "Tiktok hashtag"})
-        table = props.PropsUIPromptConsentFormTable("tiktok_hashtag", table_title, df)
+        table_title = props.Translatable(
+            {
+                "en": "Hashtags in video's die je hebt geplaatst", 
+                "nl": "Hashtags in video's die je hebt geplaatst", 
+            }
+        )
+        table_description = props.Translatable(
+            {
+                "nl": "In de tabel hieronder vind je de hashtags die je gebruikt hebt in een video die je hebt geplaats op TikTok.",
+                "en": "In de tabel hieronder vind je de hashtags die je gebruikt hebt in een video die je hebt geplaats op TikTok.",
+             }
+        )
+        table = props.PropsUIPromptConsentFormTable("tiktok_hashtag", table_title, df, table_description)
         tables_to_render.append(table)
+
 
     df = tiktok.like_list_to_df(tiktok_file)
     if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok like list", "nl": "Tiktok like list"})
-        table =  props.PropsUIPromptConsentFormTable("tiktok_like_list", table_title, df)
+        table_title = props.Translatable(
+            {
+                "en": "Videos die je hebt geliket", 
+                "nl": "Videos die je hebt geliket", 
+            }
+        )
+        table_description = props.Translatable(
+            {
+                "nl": "In de tabel hieronder vind je de videos die je hebt geliket en wanneer dat was.",
+                "en": "In de tabel hieronder vind je de videos die je hebt geliket en wanneer dat was.",
+             }
+        )
+        table =  props.PropsUIPromptConsentFormTable("tiktok_like_list", table_title, df, table_description)
         tables_to_render.append(table)
+
 
     df = tiktok.searches_to_df(tiktok_file)
     if not df.empty:
-        table_description = props.Translatable({"en": "Ik ben een beschrijving", "nl": "Ik ben een beschrijving"})
         wordcloud = {
             "title": {"en": "", "nl": ""},
             "type": "wordcloud",
             "textColumn": "Search term",
         }
-        table_title = props.Translatable({"en": "Tiktok searches", "nl": "Tiktok searches"})
+        table_title = props.Translatable(
+            {
+                "en": "Zoektermen", 
+                "nl": "Zoektermen", 
+            }
+        )
+        table_description = props.Translatable(
+            {
+                "nl": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoevaak de zoekterm voorkomt in jouw gegevens.",
+                "en": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoevaak de zoekterm voorkomt in jouw gegevens.",
+             }
+        )
         table =  props.PropsUIPromptConsentFormTable("tiktok_searches", table_title, df, table_description, [wordcloud])
         tables_to_render.append(table)
 
+
     df = tiktok.share_history_to_df(tiktok_file)
     if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok share history", "nl": "Tiktok share history"})
-        table =  props.PropsUIPromptConsentFormTable("tiktok_share_history", table_title, df)
+        table_title = props.Translatable(
+            {
+                "en": "Gedeelde video's", 
+                "nl": "Gedeelde video's", 
+            }
+        )
+        table_description = props.Translatable(
+            {
+                "nl": "In de table hieronder vind je wat je hebt gedeeld op welk tijdstip en de manier waarop.",
+                "en": "In de table hieronder vind je wat je hebt gedeeld op welk tijdstip en de manier waarop.",
+             }
+        )
+        table =  props.PropsUIPromptConsentFormTable("tiktok_share_history", table_title, df, table_description)
         tables_to_render.append(table)
+
 
     df = tiktok.settings_to_df(tiktok_file)
     if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok settings", "nl": "Tiktok settings"})
-        table =  props.PropsUIPromptConsentFormTable("tiktok_settings", table_title, df)
+        table_title = props.Translatable({"en": "Interesses op TikTok", "nl": "Interesses op TikTok"})
+        table_description = props.Translatable(
+            {
+                "nl": "Hieronder vind je de interesses die je hebt aangevinkt bij het aanmaken van je TikTok account",
+                "en": "Hieronder vind je de interesses die je hebt aangevinkt bij het aanmaken van je TikTok account",
+             }
+        )
+        table =  props.PropsUIPromptConsentFormTable("tiktok_settings", table_title, df, table_description)
         tables_to_render.append(table)
 
     return tables_to_render
@@ -232,7 +339,6 @@ def render_end_page():
 
 def render_donation_page(platform, body):
     header = props.PropsUIHeader(props.Translatable({"en": platform, "nl": platform}))
-
     footer = props.PropsUIFooter()
     page = props.PropsUIPageDonation(platform, header, body, footer)
     return CommandUIRender(page)
@@ -253,8 +359,8 @@ def retry_confirmation(platform):
 def prompt_file(extensions, platform):
     description = props.Translatable(
         {
-            "en": f"Please follow the download instructions and choose the file that you stored on your device. Click “Skip” at the right bottom, if you do not have a file from {platform}.",
-            "nl": f"Volg de download instructies en kies het bestand dat u opgeslagen heeft op uw apparaat. Als u geen {platform} bestand heeft klik dan op “Overslaan” rechts onder."
+            "en": f"Volg de download instructies en kies het bestand dat je opgeslagen hebt op jouw apparaat.",
+            "nl": f"Volg de download instructies en kies het bestand dat je opgeslagen hebt op jouw apparaat."
         }
     )
     return props.PropsUIPromptFileInput(description, extensions)
