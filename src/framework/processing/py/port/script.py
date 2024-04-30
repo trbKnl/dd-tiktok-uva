@@ -155,9 +155,20 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
 
     df = tiktok.browsing_history_to_df(tiktok_file)
     if not df.empty:
+        hours_logged_in = {
+            "title": {"en": "Total hours watched per month of the year", "nl": "Totaal aantal uren gekeken per maand van het jaar"},
+            "type": "area",
+            "group": {
+                "column": "Date",
+                "dateFormat": "month"
+            },
+            "values": [{
+                "label": "Aantal"
+            }]
+        }
         table_title = props.Translatable({"en": "Tiktok video browsing history", "nl": "Kijkgeschiedenis van TikTok video’s"})
         table_description = props.Translatable({"en": "Ik ben een beschrijving", "nl": "Ik ben een beschrijving"})
-        table = props.PropsUIPromptConsentFormTable("tiktok_video_browsing_history", table_title, df, table_description) 
+        table = props.PropsUIPromptConsentFormTable("tiktok_video_browsing_history", table_title, df, table_description, [hours_logged_in]) 
         tables_to_render.append(table)
 
     df = tiktok.favorite_hashtag_to_df(tiktok_file)
@@ -170,18 +181,6 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
     if not df.empty:
         table_title = props.Translatable({"en": "Tiktok favorite videos", "nl": "Tiktok favorite videos"})
         table = props.PropsUIPromptConsentFormTable("tiktok_favorite_videos", table_title, df)
-        tables_to_render.append(table)
-
-    df = tiktok.follower_to_df(tiktok_file)
-    if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok follower", "nl": "Tiktok follower"})
-        table = props.PropsUIPromptConsentFormTable("tiktok_follower", table_title, df)
-        tables_to_render.append(table)
-
-    df = tiktok.following_to_df(tiktok_file)
-    if not df.empty:
-        table_title = props.Translatable({"en": "Tiktok following", "nl": "Tiktok following"})
-        table = props.PropsUIPromptConsentFormTable("tiktok_following", table_title, df)
         tables_to_render.append(table)
 
     df = tiktok.hashtag_to_df(tiktok_file)
@@ -198,8 +197,14 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
 
     df = tiktok.searches_to_df(tiktok_file)
     if not df.empty:
+        table_description = props.Translatable({"en": "Ik ben een beschrijving", "nl": "Ik ben een beschrijving"})
+        wordcloud = {
+            "title": {"en": "", "nl": ""},
+            "type": "wordcloud",
+            "textColumn": "Search term",
+        }
         table_title = props.Translatable({"en": "Tiktok searches", "nl": "Tiktok searches"})
-        table =  props.PropsUIPromptConsentFormTable("tiktok_searches", table_title, df)
+        table =  props.PropsUIPromptConsentFormTable("tiktok_searches", table_title, df, table_description, [wordcloud])
         tables_to_render.append(table)
 
     df = tiktok.share_history_to_df(tiktok_file)
