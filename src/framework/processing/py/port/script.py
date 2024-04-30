@@ -181,7 +181,7 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
     df = tiktok.browsing_history_to_df(tiktok_file)
     if not df.empty:
         hours_logged_in = {
-            "title": {"en": "Totaal aantal videos gekeken per maand", "nl": "Totaal aantal videos gekeken per maand"},
+            "title": {"en": "Totaal aantal video's gekeken per maand", "nl": "Totaal aantal video's gekeken per maand"},
             "type": "area",
             "group": {
                 "column": "Tijdstip",
@@ -211,8 +211,8 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
         )
         table_description = props.Translatable(
             {
-                "nl": "In de tabel hieronder vind je de videos die tot je favorieten behoren.", 
-                "en": "In de tabel hieronder vind je de videos die tot je favorieten behoren.", 
+                "nl": "In de tabel hieronder vind je de video's die tot je favorieten behoren.", 
+                "en": "In de tabel hieronder vind je de video's die tot je favorieten behoren.", 
              }
         )
         table = props.PropsUIPromptConsentFormTable("tiktok_favorite_videos", table_title, df, table_description)
@@ -265,8 +265,8 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
         )
         table_description = props.Translatable(
             {
-                "nl": "In de tabel hieronder vind je de videos die je hebt geliket en wanneer dat was.",
-                "en": "In de tabel hieronder vind je de videos die je hebt geliket en wanneer dat was.",
+                "nl": "In de tabel hieronder vind je de video's die je hebt geliket en wanneer dat was.",
+                "en": "In de tabel hieronder vind je de video's die je hebt geliket en wanneer dat was.",
              }
         )
         table =  props.PropsUIPromptConsentFormTable("tiktok_like_list", table_title, df, table_description)
@@ -278,7 +278,7 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
         wordcloud = {
             "title": {"en": "", "nl": ""},
             "type": "wordcloud",
-            "textColumn": "Search term",
+            "textColumn": "Zoekterm",
         }
         table_title = props.Translatable(
             {
@@ -288,8 +288,8 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
         )
         table_description = props.Translatable(
             {
-                "nl": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoevaak de zoekterm voorkomt in jouw gegevens.",
-                "en": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoevaak de zoekterm voorkomt in jouw gegevens.",
+                "nl": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoe vaak de zoekterm voorkomt in jouw gegevens.",
+                "en": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoe vaak de zoekterm voorkomt in jouw gegevens.",
              }
         )
         table =  props.PropsUIPromptConsentFormTable("tiktok_searches", table_title, df, table_description, [wordcloud])
@@ -306,8 +306,8 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
         )
         table_description = props.Translatable(
             {
-                "nl": "In de table hieronder vind je wat je hebt gedeeld op welk tijdstip en de manier waarop.",
-                "en": "In de table hieronder vind je wat je hebt gedeeld op welk tijdstip en de manier waarop.",
+                "nl": "In de table hieronder vind je wat je hebt gedeeld, op welk tijdstip en de manier waarop.",
+                "en": "In de table hieronder vind je wat je hebt gedeeld, op welk tijdstip en de manier waarop.",
              }
         )
         table =  props.PropsUIPromptConsentFormTable("tiktok_share_history", table_title, df, table_description)
@@ -383,8 +383,8 @@ def donate_status(filename: str, message: str):
 def render_questionnaire(platform_name):
 
     rekeningnummer = props.Translatable({
-        "en": "rekeningnummer",
-        "nl": "rekeningnummer"
+        "en": "Rekeningnummer",
+        "nl": "Rekeningnummer"
     })
 
     tenname = props.Translatable({
@@ -392,14 +392,17 @@ def render_questionnaire(platform_name):
         "nl": "Ten name van"
     })
 
-
     questions = [
         props.PropsUIQuestionOpen(question=rekeningnummer, id=1),
         props.PropsUIQuestionOpen(question=tenname, id=2),
     ]
 
-    description = props.Translatable({"en": "Below you can find a couple of questions about the data donation process", "nl": "Hieronder vind u een paar vragen over het data donatie process"})
-    header = props.PropsUIHeader(props.Translatable({"en": "Questionnaire", "nl": "Vragenlijst"}))
+    description = props.Translatable(
+        {
+         "en": "Als beloning voor je deelname ontvang je 15 euro. Dit maken we over op je bankrekening, laat je rekeningnummer en je naam achter zodat we het geld over kunnen maken.", 
+         "nl": "Als beloning voor je deelname ontvang je 15 euro. Dit maken we over op je bankrekening, laat je rekeningnummer en je naam achter zodat we het geld over kunnen maken.", 
+        })
+    header = props.PropsUIHeader(props.Translatable({"en": "Dankjewel voor het meedoen!", "nl": "Dankjewel voor het meedoen!"}))
     body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
     footer = props.PropsUIFooter()
 
