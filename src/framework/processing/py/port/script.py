@@ -43,6 +43,14 @@ def process(session_id):
             LOGGER.info("Prompt for file for %s", platform_name)
             yield donate_logs(f"{session_id}-{platform_name}-tracking")
 
+            # vragenlijst
+            questionnaire_results = yield render_tiktok_usage_questionnaire()
+            if questionnaire_results.__type__ == "PayloadJSON":
+                yield donate(f"{session_id}-{platform_name}-tiktok-usage", questionnaire_results.value)
+            else:
+                LOGGER.info("Skipped tiktok usage questionnaire: %s", platform_name)
+                yield donate_logs(f"{session_id}-{platform_name}-tracking")
+
             # Render the propmt file page
             promptFile = prompt_file("application/zip, text/plain, application/json", platform_name)
             file_result = yield render_donation_page("Selecteer je TikTok bestand", promptFile)
@@ -403,6 +411,39 @@ def render_questionnaire(platform_name):
          "nl": "Als beloning voor je deelname ontvang je 15 euro. Dit maken we over op je bankrekening, laat je rekeningnummer en je naam achter zodat we het geld over kunnen maken.", 
         })
     header = props.PropsUIHeader(props.Translatable({"en": "Dankjewel voor het meedoen!", "nl": "Dankjewel voor het meedoen!"}))
+    body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
+    footer = props.PropsUIFooter()
+
+    page = props.PropsUIPageDonation("page", header, body, footer)
+    return CommandUIRender(page)
+
+
+
+def render_tiktok_usage_questionnaire():
+
+    question = props.Translatable({
+        "en": "Hoelang zit je al op TikTok?",
+        "nl": "Hoelang zit je al op TikTok?"
+    })
+
+    choices = [
+        props.Translatable({"en": "Langer dan 2 jaar", "nl": "Langer dan 2 jaar"}),
+        props.Translatable({"en": "Tussen 1 en 2 jaar", "nl": "Tussen 1 en 2 jaar"}),
+        props.Translatable({"en": "Tussen een half jaar en 1 jaar", "nl": "Tussen een half jaar en 1 jaar"}),
+        props.Translatable({"en": "Tussen 1 maand en een half jaar", "nl": "Tussen 1 maand en een half jaar"}),
+        props.Translatable({"en": "Korter dan 1 maand", "nl": "Korter dan 1 maand"}),
+    ]
+
+    questions = [
+        props.PropsUIQuestionMultipleChoice(question=question, choices=choices, id=1),
+    ]
+
+    description = props.Translatable(
+        {
+         "en": "", 
+         "nl": "", 
+        })
+    header = props.PropsUIHeader(props.Translatable({"en": "", "nl": ""}))
     body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
     footer = props.PropsUIFooter()
 
