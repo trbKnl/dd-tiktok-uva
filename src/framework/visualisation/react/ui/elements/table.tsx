@@ -120,12 +120,6 @@ export const Table = ({
     return (
       <tr key={item.id} className='border-b-2 border-grey4 border-solid'>
         <td key='select'>
-          <CheckBox
-            id={item.id}
-            size='w-6 h-6'
-            selected={selected.has(item.id)}
-            onSelect={() => toggleSelected(item.id)}
-          />
         </td>
 
         {item.cells.map((cell, j) => (
@@ -166,12 +160,6 @@ export const Table = ({
               <thead className=''>
                 <tr className='border-b-2 border-grey4 border-solid'>
                   <td className='w-8'>
-                    <CheckBox
-                      id='selectAll'
-                      size='w-6 h-6'
-                      selected={table.body.rows.length > 0 && selected.size === table.body.rows.length}
-                      onSelect={toggleSelectAll}
-                    />
                   </td>
                   {columnNames.map(renderHeaderCell)}
                 </tr>
@@ -180,21 +168,6 @@ export const Table = ({
             </table>
           </div>
           <div className='px-3 pb-1 flex justify-between min-h-[2.5rem]'>
-            <div className='pt-2 pb-2'>
-              {selected.size > 0 || table.deletedRowCount === 0
-                ? (
-                  <IconButton
-                    icon={DeleteSvg}
-                    label={`${text.delete} ${selected.size > 0 ? selectedLabel : ''}`}
-                    color='text-delete'
-                    disabled={selected.size === 0}
-                    onClick={() => handleDelete?.(Array.from(selected))}
-                  />
-                  )
-                : (
-                  <IconButton icon={UndoSvg} label={text.undo} color='text-primary' onClick={() => handleUndo?.()} />
-                  )}
-            </div>
             <Pagination page={page} setPage={setPage} nPages={nPages} />
           </div>
         </div>

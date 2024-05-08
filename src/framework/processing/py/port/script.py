@@ -15,7 +15,7 @@ from port.api.commands import (CommandSystemDonate, CommandUIRender, CommandSyst
 LOG_STREAM = io.StringIO()
 
 logging.basicConfig(
-    #stream=LOG_STREAM,
+    stream=LOG_STREAM,
     level=logging.DEBUG,
     format="%(asctime)s --- %(name)s --- %(levelname)s --- %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S%z",
@@ -129,8 +129,8 @@ def assemble_tables_into_form(table_list: list[props.PropsUIPromptConsentFormTab
     """
     description = props.Translatable(
         {
-            "en": """Hieronder zie je jouw gegevens over je eigen TikTok-gebruik. Bekijk de gegevens zorgvuldig, en verwijder de gegevens die je niet wil delen. Als je deze gegevens wil delen, klik dan op de knop ‘Ja, deel voor onderzoek’ onderaan deze pagina. Door deze gegevens te delen draag je bij aan onderzoek over hoe jongeren TikTok gebruiken, alvast heel erg bedankt!""",
-            "nl": """Hieronder zie je jouw gegevens over je eigen TikTok-gebruik. Bekijk de gegevens zorgvuldig, en verwijder de gegevens die je niet wil delen. Als je deze gegevens wil delen, klik dan op de knop ‘Ja, deel voor onderzoek’ onderaan deze pagina. Door deze gegevens te delen draag je bij aan onderzoek over hoe jongeren TikTok gebruiken, alvast heel erg bedankt!"""
+            "en": """Hieronder vind je je TikTok-gegevens. Wil je ze delen? Klik dan op de knop 'Ja, deel voor onderzoek' onderaan de pagina. Dan kom je op een pagina waar je je bankrekening gegevens kan delen. Wij zorgen dat je je beloning van €15 snel ontvangt.""",
+            "nl": """Hieronder vind je je TikTok-gegevens. Wil je ze delen? Klik dan op de knop 'Ja, deel voor onderzoek' onderaan de pagina. Dan kom je op een pagina waar je je bankrekening gegevens kan delen. Wij zorgen dat je je beloning van €15 snel ontvangt."""
         }
     )
 
@@ -296,8 +296,8 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
         )
         table_description = props.Translatable(
             {
-                "nl": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoe vaak de zoekterm voorkomt in jouw gegevens.",
-                "en": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geven aan hoe vaak de zoekterm voorkomt in jouw gegevens.",
+                "nl": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geeft aan hoe vaak de zoekterm voorkomt in jouw gegevens.",
+                "en": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geeft aan hoe vaak de zoekterm voorkomt in jouw gegevens.",
              }
         )
         table =  props.PropsUIPromptConsentFormTable("tiktok_searches", table_title, df, table_description, [wordcloud])
@@ -314,8 +314,8 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
         )
         table_description = props.Translatable(
             {
-                "nl": "In de table hieronder vind je wat je hebt gedeeld, op welk tijdstip en de manier waarop.",
-                "en": "In de table hieronder vind je wat je hebt gedeeld, op welk tijdstip en de manier waarop.",
+                "nl": "In de tabel hieronder vind je wat je hebt gedeeld, op welk tijdstip en de manier waarop.",
+                "en": "In de tabel hieronder vind je wat je hebt gedeeld, op welk tijdstip en de manier waarop.",
              }
         )
         table =  props.PropsUIPromptConsentFormTable("tiktok_share_history", table_title, df, table_description)
@@ -367,8 +367,8 @@ def retry_confirmation(platform):
 def prompt_file(extensions, platform):
     description = props.Translatable(
         {
-            "en": f"Volg de download instructies en kies het bestand dat je opgeslagen hebt op jouw apparaat.",
-            "nl": f"Volg de download instructies en kies het bestand dat je opgeslagen hebt op jouw apparaat."
+            "en": f"Kies het bestand dat je opgeslagen hebt op jouw apparaat.",
+            "nl": f"Kies het bestand dat je opgeslagen hebt op jouw apparaat."
         }
     )
     return props.PropsUIPromptFileInput(description, extensions)
