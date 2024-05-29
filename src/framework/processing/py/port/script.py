@@ -400,9 +400,15 @@ def render_questionnaire(platform_name):
         "nl": "Ten name van"
     })
 
+    woonplaats = props.Translatable({
+        "en": "Woonplaats",
+        "nl": "Woonplaats"
+    })
+
     questions = [
         props.PropsUIQuestionOpen(question=rekeningnummer, id=1),
         props.PropsUIQuestionOpen(question=tenname, id=2),
+        props.PropsUIQuestionOpen(question=woonplaats, id=3),
     ]
 
     description = props.Translatable(
