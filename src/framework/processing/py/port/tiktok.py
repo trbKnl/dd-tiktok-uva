@@ -119,6 +119,8 @@ def browsing_history_to_df(tiktok_zip: str):
         pattern = re.compile(r"^Date: (.*?)\nLink: (.*?)$", re.MULTILINE)
         matches = re.findall(pattern, text)
         out = pd.DataFrame(matches, columns=["Tijdstip", "Gekeken video"])
+        out = out.drop_duplicates()
+        out.reset_index(drop=True, inplace=True)
 
     except Exception as e:
         logger.error(e)
