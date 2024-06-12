@@ -13,10 +13,10 @@ export default class FakeBridge implements Bridge {
   }
 
   handleDonation (command: CommandSystemDonate): void {
-    console.log(`[FakeBridge] received donation: ${command.key}=${command.json_string}`)
+    //console.log(`[FakeBridge] received donation: ${command.key}=${command.json_string}`)
   }
 
   handleExit (command: CommandSystemExit): void {
-    console.log(`[FakeBridge] received exit: ${command.code}=${command.info}`)
+    //console.log(`[FakeBridge] received exit: ${command.code}=${command.info}`)
   }
 }

@@ -7,6 +7,7 @@ import logging
 import zipfile
 import re
 import io
+import json
 
 import pandas as pd
 
@@ -119,8 +120,45 @@ def browsing_history_to_df(tiktok_zip: str):
         pattern = re.compile(r"^Date: (.*?)\nLink: (.*?)$", re.MULTILINE)
         matches = re.findall(pattern, text)
         out = pd.DataFrame(matches, columns=["Tijdstip", "Gekeken video"])
-        out = out.drop_duplicates()
+        #out = out.drop_duplicates()
         out.reset_index(drop=True, inplace=True)
+
+    except Exception as e:
+        logger.error(e)
+
+    return out
+
+
+def chunk_list(lst, n):
+    return [lst[i:i + n] for i in range(0, len(lst), n)]
+
+
+def browsing_history_to_df_e(tiktok_zip: str) -> list[str]:
+
+    out = []
+
+    try:
+        b = unzipddp.extract_file_from_zip(tiktok_zip, "Browsing History.txt")
+        b = io.TextIOWrapper(b, encoding='utf-8')
+        text = b.read()
+
+        pattern = re.compile(r"^Date: (.*?)\nLink: (.*?)$", re.MULTILINE)
+        matches = re.findall(pattern, text)
+
+        time_d = {}
+        video_d = {}
+        chunks = chunk_list(matches, 250000)
+        for chunk in chunks:
+            for index, value in enumerate(chunk):
+                time, video_watched = value
+                time_d[str(index)] = time
+                video_d[str(index)] = video_watched
+
+            res = {
+                "Tijdstip": time_d,
+                "Gekeken video": video_d
+            }
+            out.append(json.dumps(res))
 
     except Exception as e:
         logger.error(e)

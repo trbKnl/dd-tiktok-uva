@@ -114,6 +114,36 @@ class PropsUIPromptConsentFormTable:
 
 
 @dataclass
+class PropsUIPromptConsentFormTableE:
+    """Table to be shown to the participant prior to donation
+
+    Attributes:
+        id: a unique string to itentify the table after donation
+        title: title of the table
+        data_frame: table to be shown
+        visualizations: optional visualizations to be shown. (see TODO for input format)
+    """
+
+    id: str
+    title: Translatable
+    data_frame: str
+    description: Optional[Translatable] = None
+    visualizations: Optional[list] = None
+    folded: Optional[bool] = False
+
+    def toDict(self):
+        dict = {}
+        dict["__type__"] = "PropsUIPromptConsentFormTable"
+        dict["id"] = self.id
+        dict["title"] = self.title.toDict()
+        dict["data_frame"] = self.data_frame
+        dict["description"] = self.description.toDict() if self.description else None
+        dict["visualizations"] = self.visualizations if self.visualizations else None
+        dict["folded"] = self.folded
+        return dict
+
+
+@dataclass
 class PropsUIPromptConsentForm:
     """Tables to be shown to the participant prior to donation
 

@@ -1,8 +1,7 @@
 import logging
 import json
 import io
-from typing import Optional, Literal
-
+from typing import Tuple
 
 import pandas as pd
 
@@ -37,6 +36,7 @@ def process(session_id):
         platform_name, extraction_fun, validation_fun = platform
 
         table_list = None
+        donation_dict = None
 
         # Prompt file extraction loop
         while True:
@@ -63,7 +63,7 @@ def process(session_id):
                     LOGGER.info("Payload for %s", platform_name)
                     yield donate_logs(f"{session_id}-{platform_name}-tracking")
 
-                    table_list = extraction_fun(file_result.value, validation)
+                    table_list, donation_dict = extraction_fun(file_result.value, validation)
                     break
 
                 # DDP is not recognized: Different status code
@@ -99,27 +99,31 @@ def process(session_id):
 
             if consent_result.__type__ == "PayloadJSON":
                 LOGGER.info("Data donated; %s", platform_name)
-                yield donate(platform_name, consent_result.value)
+                if donation_dict is not None:
+                    yield from donate_dict(platform_name, donation_dict)
                 yield donate_logs(f"{session_id}-{platform_name}-tracking")
                 yield donate_status(f"{session_id}-{platform_name}-DONATED", "DONATED")
-
-                questionnaire_results = yield render_questionnaire(platform_name)
-
-                if questionnaire_results.__type__ == "PayloadJSON":
-                    yield donate(f"{session_id}-{platform_name}-questionnaire-donation", questionnaire_results.value)
-                else:
-                    LOGGER.info("Skipped questionnaire: %s", platform_name)
-                    yield donate_logs(f"{session_id}-{platform_name}-tracking")
 
             else:
                 LOGGER.info("Skipped ater reviewing consent: %s", platform_name)
                 yield donate_logs(f"{session_id}-{platform_name}-tracking")
                 yield donate_status(f"{session_id}-{platform_name}-SKIP-REVIEW-CONSENT", "SKIP_REVIEW_CONSENT")
 
+
+            questionnaire_results = yield render_questionnaire(platform_name)
+            if questionnaire_results.__type__ == "PayloadJSON":
+                yield donate(f"{session_id}-{platform_name}-questionnaire-donation", questionnaire_results.value)
+            else:
+                LOGGER.info("Skipped questionnaire: %s", platform_name)
+                yield donate_logs(f"{session_id}-{platform_name}-tracking")
+
     yield exit(0, "Success")
     yield render_end_page()
 
 
+
+def chunk_list(lst, n):
+    return [lst[i:i + n] for i in range(0, len(lst), n)]
 
 ##################################################################
 
@@ -182,35 +186,55 @@ def create_empty_table(platform_name: str) -> props.PropsUIPromptConsentFormTabl
 ##################################################################
 # Extraction functions
 
+def split_dataframe(df, chunk_size):
+    chunks = []
+    num_chunks = len(df) // chunk_size + 1
+    for i in range(num_chunks):
+        print("CHUNK")
+        start = i * chunk_size
+        end = min((i + 1) * chunk_size, len(df))
+        chunks.append(df[start:end].reset_index(drop=True))
+    return chunks
 
-def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptConsentFormTable]:
+"""
+"""
+
+def extract_tiktok(tiktok_file: str, validation) -> Tuple[list[props.PropsUIPromptConsentFormTable], dict]:
     tables_to_render = []
+    donation_dict = {}
 
     df = tiktok.browsing_history_to_df(tiktok_file)
     if not df.empty:
-        hours_logged_in = {
-            "title": {"en": "Totaal aantal video's gekeken per maand", "nl": "Totaal aantal video's gekeken per maand"},
-            "type": "area",
-            "group": {
-                "column": "Tijdstip",
-                "dateFormat": "month"
-            },
-            "values": [{
-                "label": "Aantal"
-            }]
-        }
-        table_title = props.Translatable({"en": "Kijkgeschiedenis", "nl": "Kijkgeschiedenis"})
-        table_description = props.Translatable(
-            {
-                "en": "De tabel hieronder geeft aan welke TikTok video's je precies hebt bekeken en wanneer dat was. De grafiek laat zien hoeveel video's je elke maand hebt bekeken.", 
-                "nl": "De tabel hieronder geeft aan welke TikTok video's je precies hebt bekeken en wanneer dat was. De grafiek laat zien hoeveel video's je elke maand hebt bekeken.", 
-             }
-        )
-        table = props.PropsUIPromptConsentFormTable("tiktok_video_browsing_history", table_title, df, table_description, [hours_logged_in]) 
-        tables_to_render.append(table)
+        dfs = split_dataframe(df, 250000)
+        for i, df in enumerate(dfs):
+            df_name = f"tiktok_video_browsing_history_{i}"
+            hours_logged_in = {
+                "title": {"en": "Totaal aantal video's gekeken per maand", "nl": "Totaal aantal video's gekeken per maand"},
+                "type": "area",
+                "group": {
+                    "column": "Tijdstip",
+                    "dateFormat": "month"
+                },
+                "values": [{
+                    "label": "Aantal"
+                }]
+            }
+            table_title = props.Translatable({"en": "Kijkgeschiedenis", "nl": "Kijkgeschiedenis"})
+            table_description = props.Translatable(
+                {
+                    "en": "De tabel hieronder geeft aan welke TikTok video's je precies hebt bekeken en wanneer dat was. De grafiek laat zien hoeveel video's je elke maand hebt bekeken. Heb je precies 250000 rijen in de tabel zitten? Dat konden we niet al je data laten zien in deze tabel. Ben je benieuwd naar de rest? Open de zipfile, ga naar 'Activity' en open 'Browsing history.txt'. Dan kun je zelf de rest bekijken. Lukt het niet? Laat het ons even weten via WhatsApp.",
+                    "nl": "De tabel hieronder geeft aan welke TikTok video's je precies hebt bekeken en wanneer dat was. De grafiek laat zien hoeveel video's je elke maand hebt bekeken. Heb je precies 250000 rijen in de tabel zitten? Dat konden we niet al je data laten zien in deze tabel. Ben je benieuwd naar de rest? Open de zipfile, ga naar 'Activity' en open 'Browsing history.txt'. Dan kun je zelf de rest bekijken. Lukt het niet? Laat het ons even weten via WhatsApp.",
+                 }
+            )
+            if i == 0:
+                table = props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description, [hours_logged_in]) 
+                tables_to_render.append(table)
+
+            donation_dict[df_name] = df.to_dict(orient="records")
 
     df = tiktok.favorite_videos_to_df(tiktok_file)
     if not df.empty:
+        df_name = "tiktok_favorite_videos"
         table_title = props.Translatable(
             {
                 "en": "Favoriete video's", 
@@ -223,12 +247,14 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
                 "en": "In de tabel hieronder vind je de video's die tot je favorieten behoren.", 
              }
         )
-        table = props.PropsUIPromptConsentFormTable("tiktok_favorite_videos", table_title, df, table_description)
+        table = props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description)
         tables_to_render.append(table)
+        donation_dict[df_name] = df.to_dict(orient="records")
 
 
     df = tiktok.favorite_hashtag_to_df(tiktok_file)
     if not df.empty:
+        df_name = "tiktok_favorite_hashtags"
         table_title = props.Translatable(
             {
                 "en": "Favoriete hashtags", 
@@ -241,12 +267,13 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
                 "nl": "In de tabel hieronder vind je de hashtags die tot je favorieten behoren.", 
              }
         )
-        table = props.PropsUIPromptConsentFormTable("tiktok_favorite_hashtags", table_title, df, table_description)
+        table = props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description)
         tables_to_render.append(table)
-
+        donation_dict[df_name] = df.to_dict(orient="records")
 
     df = tiktok.hashtag_to_df(tiktok_file)
     if not df.empty:
+        df_name = "tiktok_hashtag"
         table_title = props.Translatable(
             {
                 "en": "Hashtags in video's die je hebt geplaatst", 
@@ -259,12 +286,13 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
                 "en": "In de tabel hieronder vind je de hashtags die je gebruikt hebt in een video die je hebt geplaats op TikTok.",
              }
         )
-        table = props.PropsUIPromptConsentFormTable("tiktok_hashtag", table_title, df, table_description)
+        table = props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description)
         tables_to_render.append(table)
-
+        donation_dict[df_name] = df.to_dict(orient="records")
 
     df = tiktok.like_list_to_df(tiktok_file)
     if not df.empty:
+        df_name = "tiktok_like_list"
         table_title = props.Translatable(
             {
                 "en": "Videos die je hebt geliket", 
@@ -277,12 +305,14 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
                 "en": "In de tabel hieronder vind je de video's die je hebt geliket en wanneer dat was.",
              }
         )
-        table =  props.PropsUIPromptConsentFormTable("tiktok_like_list", table_title, df, table_description)
+        table =  props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description)
         tables_to_render.append(table)
+        donation_dict[df_name] = df.to_dict(orient="records")
 
 
     df = tiktok.searches_to_df(tiktok_file)
     if not df.empty:
+        df_name = "tiktok_searches"
         wordcloud = {
             "title": {"en": "", "nl": ""},
             "type": "wordcloud",
@@ -300,12 +330,13 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
                 "en": "De tabel hieronder laat zien wat je hebt gezocht en wanneer dat was. De grootte van de woorden in de grafiek geeft aan hoe vaak de zoekterm voorkomt in jouw gegevens.",
              }
         )
-        table =  props.PropsUIPromptConsentFormTable("tiktok_searches", table_title, df, table_description, [wordcloud])
+        table =  props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description, [wordcloud])
         tables_to_render.append(table)
-
+        donation_dict[df_name] = df.to_dict(orient="records")
 
     df = tiktok.share_history_to_df(tiktok_file)
     if not df.empty:
+        df_name = "tiktok_share_history"
         table_title = props.Translatable(
             {
                 "en": "Gedeelde video's", 
@@ -318,12 +349,14 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
                 "en": "In de tabel hieronder vind je wat je hebt gedeeld, op welk tijdstip en de manier waarop.",
              }
         )
-        table =  props.PropsUIPromptConsentFormTable("tiktok_share_history", table_title, df, table_description)
+        table =  props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description)
         tables_to_render.append(table)
+        donation_dict[df_name] = df.to_dict(orient="records")
 
 
     df = tiktok.settings_to_df(tiktok_file)
     if not df.empty:
+        df_name = "tiktok_settings"
         table_title = props.Translatable({"en": "Interesses op TikTok", "nl": "Interesses op TikTok"})
         table_description = props.Translatable(
             {
@@ -331,11 +364,11 @@ def extract_tiktok(tiktok_file: str, validation) -> list[props.PropsUIPromptCons
                 "en": "Hieronder vind je de interesses die je hebt aangevinkt bij het aanmaken van je TikTok account",
              }
         )
-        table =  props.PropsUIPromptConsentFormTable("tiktok_settings", table_title, df, table_description)
+        table =  props.PropsUIPromptConsentFormTable(df_name, table_title, df, table_description)
         tables_to_render.append(table)
+        donation_dict[df_name] = df.to_dict(orient="records")
 
-    return tables_to_render
-
+    return (tables_to_render, donation_dict)
 
 
 ##########################################
@@ -384,6 +417,12 @@ def exit(code, info):
 
 def donate_status(filename: str, message: str):
     return donate(filename, json.dumps({"status": message}))
+
+
+def donate_dict(platform_name: str, d: dict):
+    for k, v in d.items():
+        donation_str = json.dumps({k: v})
+        yield donate(f"{platform_name}_{k}", donation_str)
 
 ###############################################################################################
 # Questionnaire questions
@@ -455,4 +494,6 @@ def render_tiktok_usage_questionnaire():
 
     page = props.PropsUIPageDonation("page", header, body, footer)
     return CommandUIRender(page)
+
+
 

@@ -31,6 +31,12 @@ export const ConsentForm = (props: Props): JSX.Element => {
   const [isDonating, setIsDonating] = useState(false)
 
   useEffect(() => {
+    if (window.frameElement) {
+      window.parent.scrollTo(0,0)
+    } else {
+      window.scrollTo(0,0)
+    }
+    setIsDonating(false)
     setTables(parseTables(props.tables))
     setMetaTables(parseTables(props.metaTables))
   }, [props.tables])
